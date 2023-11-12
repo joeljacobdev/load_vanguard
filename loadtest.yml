@@ -1,0 +1,14 @@
+base_url: https://joel.wiki
+headers:
+  app_type: loadtesting
+senarios:
+- senario: create
+  frequency: 5
+  apis:
+  - path: /database-index-explained
+    params:
+      param1: value1
+      param2: value2
+  - path: /using-nextjs-image-component-mdx
+    params:
+      param1: value1

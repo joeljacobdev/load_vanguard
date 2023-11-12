@@ -1,63 +1,47 @@
+use std::{collections::HashMap, fs::File};
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Endpoint {
+    path: String,
+    params: HashMap<String, String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Senario {
+    senario: String,
+    frequency: i32,
+    apis: Vec<Endpoint>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Config {
+    base_url: String,
+    headers: HashMap<String, String>,
+    senarios: Vec<Senario>,
+}
+
 fn main() {
-    let x = {
-        let y = 1; // first statement
-        let z = 2; // second statement
-        y + z // this is the *tail* - what the whole block will evaluate to
-    };
-    println!("Hello, world! {x}");
+    let file_name = std::env::args()
+        .nth(1)
+        .unwrap_or("loadtest.yml".to_string());
 
-    struct Number {
-        _odd: bool,
-        value: i32,
-    }
-
-    impl Number {
-        fn is_positive(&self) -> bool {
-            self.value > 0
+    let file = match File::open(&file_name) {
+        Ok(file) => file,
+        Err(_) => {
+            eprintln!("Failed to open file {} ", file_name);
+            return;
         }
-    }
-    let mut a = Number {
-        _odd: false,
-        value: 4,
-    };
-    let Number { value, .. } = a;
-    a.value = -1;
-    println!("{} {}", value, a.is_positive());
-    let result = match a.value {
-        v if v > 0 => "Positive",
-        _ => "Negative",
-    };
-    println!("{} ", result);
-    let mut b = Number {
-        _odd: false,
-        value: 4,
     };
 
-    fn invert(number: &mut Number) {
-        number.value = -number.value;
-    }
-    // to borrow as mut, need to declare as mut
-    invert(&mut b);
-    println!("{}", b.value);
+    let config: Config = match serde_yaml::from_reader(file) {
+        Ok(config) => config,
+        Err(_) => {
+            eprintln!("Failed to open file {} ", file_name);
+            return;
+        }
+    };
 
-    fn print_type_name<T>(_var: &T) {
-        println!("{}", std::any::type_name::<T>())
-    }
-
-    struct Pair<T> {
-        _a: T,
-        _b: i32,
-    }
-    let a = Pair { _a: false, _b: 3 };
-    print_type_name(&a);
-
-    let mut v1 = Vec::new();
-    v1.push(1);
-    v1.push(3);
-    let v1 = vec![1, 2, 3];
-    println!("{:?}", v1);
-    let v1 = vec![1, 2, 5];
-    println!("{:?}", v1);
-    let v1 = vec![1, 2, 6];
-    println!("{:?}", v1);
+    println!("{:?}", config);
 }
