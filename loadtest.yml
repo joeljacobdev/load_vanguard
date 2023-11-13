@@ -1,14 +1,13 @@
-base_url: https://joel.wiki
+base_url: https://jsonplaceholder.typicode.com
 headers:
   app_type: loadtesting
 senarios:
-- senario: create
+- title: fake
   frequency: 5
   apis:
-  - path: /database-index-explained
+  - path: /todos/1
+    method: GET
     params:
-      param1: value1
-      param2: value2
-  - path: /using-nextjs-image-component-mdx
+  - path: /todos/2
+    method: GET
     params:
-      param1: value1
