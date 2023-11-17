@@ -44,8 +44,8 @@ scenarios:
 ```
 
 ## Roadmap
-- [] Add different metrics for detailed performance analysis.
-- [] Integrate instance metrics from cloudwatch for AWS-hosted services.
+- [ ] Add different metrics for detailed performance analysis.
+- [ ] Integrate instance metrics from cloudwatch for AWS-hosted services.
 
 ## Contributing
 Contributions to this project are welcome. If you want to contribute, please follow the standard open-source practices for raising issues/features and submitting pull requests.

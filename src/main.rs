@@ -134,7 +134,7 @@ async fn main() {
         }
     };
 
-    println!("Read config = {:?}\n", config);
+    log::info!("Read config = {:?}\n", config);
     for senario in config.senarios.iter() {
         let mut tasks = Vec::<JoinHandle<()>>::new();
         for scene_no in 0..senario.frequency {
