@@ -1,8 +1,11 @@
-use std::{collections::HashMap, fs::File};
-
+use dotenv::dotenv;
+use log;
 use serde::{Deserialize, Serialize};
+use std::env;
+use std::{collections::HashMap, fs::File, sync::Arc};
+use tokio::{spawn, task::JoinHandle, time::Instant};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 enum RequestMethod {
     GET,
     PUT,
@@ -10,21 +13,22 @@ enum RequestMethod {
     POST,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct Endpoint {
     path: String,
+    identifier: String,
     method: RequestMethod,
     params: HashMap<String, String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct Senario {
     title: String,
     frequency: i32,
     apis: Vec<Endpoint>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Config {
     base_url: String,
     headers: HashMap<String, String>,
@@ -32,7 +36,7 @@ struct Config {
 }
 
 impl Endpoint {
-    fn prepare_endpoint(self: &Endpoint, base_url: &String) -> String {
+    fn __prepare_endpoint(self: &Endpoint, base_url: &String) -> String {
         let mut url = base_url.to_string();
         url.push_str(self.path.as_str());
         if url.ends_with("/") == false {
@@ -52,10 +56,18 @@ impl Endpoint {
 
     async fn call_api(
         self: &Endpoint,
+        scene: &String,
         config: &Config,
+        _previous_response: &serde_json::Value,
     ) -> Result<serde_json::Value, reqwest::Error> {
-        let url = self.prepare_endpoint(&config.base_url);
+        let url = self.__prepare_endpoint(&config.base_url);
+        let start_time = Instant::now();
         let response = reqwest::get(&url).await?;
+        let duration = start_time.elapsed();
+        log::info!(
+            "[{scene}] [{}] executed in duration = {duration:.1?}",
+            self.identifier
+        );
         let content_type = response
             .headers()
             .get("content-type")
@@ -79,8 +91,29 @@ impl Endpoint {
     }
 }
 
+impl Senario {
+    async fn execute(&self, scene: String, config: Arc<Config>) {
+        let mut json: serde_json::Value = serde_json::Value::Null;
+        for api in self.apis.iter() {
+            json = match api.call_api(&scene, &config, &json).await {
+                Ok(response) => response,
+                Err(_) => {
+                    eprintln!("Error occured in api call");
+                    serde_json::Value::Null
+                }
+            };
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+    let rust_log = env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+    env::set_var("RUST_LOG", rust_log);
+
+    env_logger::init();
+
     let file_name = std::env::args()
         .nth(1)
         .unwrap_or("loadtest.yml".to_string());
@@ -93,8 +126,8 @@ async fn main() {
         }
     };
 
-    let config: Config = match serde_yaml::from_reader(file) {
-        Ok(config) => config,
+    let config: Arc<Config> = match serde_yaml::from_reader(file) {
+        Ok(config) => Arc::<Config>::new(config),
         Err(_) => {
             eprintln!("Failed to open file {} ", file_name);
             return;
@@ -103,16 +136,17 @@ async fn main() {
 
     println!("Read config = {:?}\n", config);
     for senario in config.senarios.iter() {
-        let mut json: serde_json::Value = serde_json::Value::Null;
-        for api in senario.apis.iter() {
-            json = match api.call_api(&config).await {
-                Ok(response) => response,
-                Err(_) => {
-                    eprintln!("Error occured in api call");
-                    serde_json::Value::Null
-                }
-            };
-            println!("{}", json)
+        let mut tasks = Vec::<JoinHandle<()>>::new();
+        for scene_no in 0..senario.frequency {
+            let scene = format!("{} {scene_no}", senario.title);
+            let cloned_config = Arc::clone(&config);
+            let cloned_senario = senario.clone();
+            tasks.push(spawn(async move {
+                cloned_senario.execute(scene, cloned_config).await;
+            }));
+        }
+        for task in tasks {
+            task.await.unwrap()
         }
     }
 }

@@ -2,12 +2,14 @@ base_url: https://jsonplaceholder.typicode.com
 headers:
   app_type: loadtesting
 senarios:
-- title: fake
+- title: scene
   frequency: 5
   apis:
-  - path: /todos/1
+  - path: /todos/2
+    identifier: get_todo_1
     method: GET
     params:
-  - path: /todos/2
+  - path: /todos/1
+    identifier: get_todo_2
     method: GET
     params:
