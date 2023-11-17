@@ -1,5 +1,5 @@
 [package]
-name = "loadtest-rs-cli"
+name = "load_vanguard"
 version = "0.1.0"
 edition = "2021"
 
