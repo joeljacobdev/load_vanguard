@@ -135,12 +135,17 @@ async fn main() {
     };
 
     log::info!("Read config = {:?}\n", config);
-    for senario in config.senarios.iter() {
+    let senarios: Vec<Arc<Senario>> = config
+        .senarios
+        .iter()
+        .map(|s| Arc::new(s.clone()))
+        .collect();
+    for senario in senarios.iter() {
         let mut tasks = Vec::<JoinHandle<()>>::new();
         for scene_no in 0..senario.frequency {
             let scene = format!("{} {scene_no}", senario.title);
             let cloned_config = Arc::clone(&config);
-            let cloned_senario = senario.clone();
+            let cloned_senario = Arc::clone(&senario);
             tasks.push(spawn(async move {
                 cloned_senario.execute(scene, cloned_config).await;
             }));

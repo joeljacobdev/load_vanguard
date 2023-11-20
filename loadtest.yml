@@ -3,7 +3,7 @@ headers:
   app_type: loadtesting
 senarios:
 - title: scene
-  frequency: 5
+  frequency: 50
   apis:
   - path: /todos/2
     identifier: get_todo_1
